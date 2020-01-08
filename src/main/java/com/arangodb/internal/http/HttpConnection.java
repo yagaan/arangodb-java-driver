@@ -20,24 +20,37 @@
 
 package com.arangodb.internal.http;
 
-import com.arangodb.ArangoDBException;
-import com.arangodb.Protocol;
-import com.arangodb.internal.net.Connection;
-import com.arangodb.internal.net.HostDescription;
-import com.arangodb.internal.util.CURLLogger;
-import com.arangodb.internal.util.IOUtils;
-import com.arangodb.internal.util.ResponseUtils;
-import com.arangodb.util.ArangoSerialization;
-import com.arangodb.util.ArangoSerializer.Options;
-import com.arangodb.velocypack.VPackSlice;
-import com.arangodb.velocystream.Request;
-import com.arangodb.velocystream.Response;
-import org.apache.http.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLContext;
+
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
+import org.apache.http.HeaderElementIterator;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthenticationException;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.*;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
@@ -48,9 +61,11 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.ProxyAuthenticationStrategy;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.message.BasicNameValuePair;
@@ -59,14 +74,19 @@ import org.apache.http.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
+import com.arangodb.ArangoDBException;
+import com.arangodb.Protocol;
+import com.arangodb.internal.net.Connection;
+import com.arangodb.internal.net.HostDescription;
+import com.arangodb.internal.net.ProxyDescription;
+import com.arangodb.internal.util.CURLLogger;
+import com.arangodb.internal.util.IOUtils;
+import com.arangodb.internal.util.ResponseUtils;
+import com.arangodb.util.ArangoSerialization;
+import com.arangodb.util.ArangoSerializer.Options;
+import com.arangodb.velocypack.VPackSlice;
+import com.arangodb.velocystream.Request;
+import com.arangodb.velocystream.Response;
 
 /**
  * @author Mark Vollmary
@@ -86,6 +106,7 @@ public class HttpConnection implements Connection {
         private String httpCookieSpec;
         private Protocol contentType;
         private HostDescription host;
+   
         private Long ttl;
         private SSLContext sslContext;
         private Integer timeout;
@@ -124,6 +145,7 @@ public class HttpConnection implements Connection {
             this.host = host;
             return this;
         }
+        
 
         public Builder ttl(final Long ttl) {
             this.ttl = ttl;
@@ -153,6 +175,7 @@ public class HttpConnection implements Connection {
     private final Boolean useSsl;
     private final Protocol contentType;
     private final HostDescription host;
+ 
 
     private HttpConnection(final HostDescription host, final Integer timeout, final String user, final String password,
                            final Boolean useSsl, final SSLContext sslContext, final ArangoSerialization util, final Protocol contentType,
@@ -193,6 +216,18 @@ public class HttpConnection implements Connection {
         final HttpClientBuilder builder = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig.build())
                 .setConnectionManager(cm).setKeepAliveStrategy(keepAliveStrategy)
                 .setRetryHandler(new DefaultHttpRequestRetryHandler());
+        ProxyDescription proxy = host.getProxy();
+        if(proxy!=null) {
+        	HttpHost httpProxy = new HttpHost(proxy.getHost(), proxy.getPort());
+			builder.setProxy(httpProxy);
+			if(proxy.hasAuth()) {
+				CredentialsProvider credsProvider = new BasicCredentialsProvider();
+				UsernamePasswordCredentials proxyCreds = new UsernamePasswordCredentials(proxy.getUser(), proxy.getPassword());
+				credsProvider.setCredentials( new AuthScope(httpProxy),proxyCreds);
+				ProxyAuthenticationStrategy pauth = new ProxyAuthenticationStrategy();
+				builder.setProxyAuthenticationStrategy(pauth);
+			}
+        }
         if (ttl != null) {
             builder.setConnectionTimeToLive(ttl, TimeUnit.MILLISECONDS);
         }

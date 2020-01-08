@@ -24,7 +24,7 @@ package com.arangodb.internal.net;
  * @author Mark Vollmary
  */
 public class HostDescription {
-
+	private ProxyDescription proxy;
     private final String host;
     private final int port;
 
@@ -33,6 +33,14 @@ public class HostDescription {
         this.host = host;
         this.port = port;
     }
+    
+    public void setProxy(ProxyDescription proxy) {
+		this.proxy = proxy;
+	}
+    
+    public ProxyDescription getProxy() {
+		return proxy;
+	}
 
     public String getHost() {
         return host;
