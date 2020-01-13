@@ -138,20 +138,25 @@ public abstract class InternalArangoDBBuilder {
 	protected void setHost(final String host, final int port) {
 		HostDescription hd = new HostDescription(host, port);
 		hosts.add(hd);
-		if(proxy!=null) {
+		if (proxy != null) {
 			hd.setProxy(proxy);
 		}
 	}
 
 	protected void setProxy(final String host, final int port, String user, String password) {
+		ProxyDescription proxy;
+		if (host == null) {
+			proxy = null;
+		} else {
+			proxy = new ProxyDescription(host, port);
+			proxy.setUser(user);
+			proxy.setPassword(password);
 
-		ProxyDescription proxy = new ProxyDescription(host, port);
-		proxy.setUser(user);
-		proxy.setPassword(password);
-		if (host != null) {
+		}
+		if (this.host != null) {
 			this.host.setProxy(proxy);
 		}
-		
+
 		for (HostDescription hd : this.hosts) {
 			hd.setProxy(proxy);
 		}
