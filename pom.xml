@@ -50,16 +50,18 @@
         </developer>
     </developers>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
+	<distributionManagement>
+		<repository>
+			<id>yagaan.ovh.releases</id>
+			<name>Yagaan Repository for Releases</name>
+			<url>https://nexus.yagaan.io/repository/yagaan-releases/</url>
+		</repository>
+		<snapshotRepository>
+			<id>yagaan.ovh.snapshots</id>
+			<name>Yagaan Repository for SNAPSHOTS</name>
+			<url>https://nexus.yagaan.io/repository/yagaan-snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
 
     <profiles>
         <profile>
