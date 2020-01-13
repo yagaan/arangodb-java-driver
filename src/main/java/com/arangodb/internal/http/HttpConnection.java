@@ -189,15 +189,14 @@ public class HttpConnection implements Connection {
         this.contentType = contentType;
         final RegistryBuilder<ConnectionSocketFactory> registryBuilder = RegistryBuilder
                 .create();
-        if (Boolean.TRUE == useSsl) {
-            if (sslContext != null) {
-                registryBuilder.register("https", new SSLConnectionSocketFactory(sslContext));
-            } else {
-                registryBuilder.register("https", new SSLConnectionSocketFactory(SSLContexts.createSystemDefault()));
-            }
-        } else {
-            registryBuilder.register("http", new PlainConnectionSocketFactory());
-        }
+		registryBuilder.register("http", new PlainConnectionSocketFactory());
+		if (Boolean.TRUE == useSsl) {
+			if (sslContext != null) {
+				registryBuilder.register("https", new SSLConnectionSocketFactory(sslContext));
+			} else {
+				registryBuilder.register("https", new SSLConnectionSocketFactory(SSLContexts.createSystemDefault()));
+			}
+		}
         cm = new PoolingHttpClientConnectionManager(registryBuilder.build());
         cm.setDefaultMaxPerRoute(1);
         cm.setMaxTotal(1);
