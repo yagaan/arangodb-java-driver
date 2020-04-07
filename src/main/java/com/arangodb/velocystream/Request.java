@@ -20,96 +20,110 @@
 
 package com.arangodb.velocystream;
 
-import com.arangodb.velocypack.VPackSlice;
-import com.arangodb.velocypack.annotations.Expose;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import com.arangodb.velocypack.VPackSlice;
+import com.arangodb.velocypack.annotations.Expose;
 
 /**
  * @author Mark Vollmary
  */
 public class Request {
 
-    private int version = 1;
-    private int type = 1;
-    private final String database;
-    private final RequestType requestType;
-    private final String request;
-    private final Map<String, String> queryParam;
-    private final Map<String, String> headerParam;
-    @Expose(serialize = false)
-    private VPackSlice body;
+	private int version = 1;
+	private int type = 1;
+	private final String database;
+	private final RequestType requestType;
+	private final String request;
+	private final Map<String, String> queryParam;
+	private final Map<String, String> headerParam;
+	@Expose(serialize = false)
+	private VPackSlice body;
+	@Expose(serialize = false)
+	private String jsonBody="";
 
-    public Request(final String database, final RequestType requestType, final String path) {
-        super();
-        this.database = database;
-        this.requestType = requestType;
-        this.request = path;
-        body = null;
-        queryParam = new HashMap<>();
-        headerParam = new HashMap<>();
-    }
+	public Request(final String database, final RequestType requestType, final String path) {
+		super();
+		this.database = database;
+		this.requestType = requestType;
+		this.request = path;
+		this.body = null;
+		this.queryParam = new HashMap<>();
+		this.headerParam = new HashMap<>();
+	}
 
-    public int getVersion() {
-        return version;
-    }
+	public int getVersion() {
+		return this.version;
+	}
 
-    public Request setVersion(final int version) {
-        this.version = version;
-        return this;
-    }
+	public Request setVersion(final int version) {
+		this.version = version;
+		return this;
+	}
 
-    public int getType() {
-        return type;
-    }
+	public int getType() {
+		return this.type;
+	}
 
-    public Request setType(final int type) {
-        this.type = type;
-        return this;
-    }
+	public Request setType(final int type) {
+		this.type = type;
+		return this;
+	}
 
-    public String getDatabase() {
-        return database;
-    }
+	public String getDatabase() {
+		return this.database;
+	}
 
-    public RequestType getRequestType() {
-        return requestType;
-    }
+	public RequestType getRequestType() {
+		return this.requestType;
+	}
 
-    public String getRequest() {
-        return request;
-    }
+	public String getRequest() {
+		return this.request;
+	}
 
-    public Map<String, String> getQueryParam() {
-        return queryParam;
-    }
+	public Map<String, String> getQueryParam() {
+		return this.queryParam;
+	}
 
-    public Request putQueryParam(final String key, final Object value) {
-        if (value != null) {
-            queryParam.put(key, value.toString());
-        }
-        return this;
-    }
+	public Request putQueryParam(final String key, final Object value) {
+		if (value != null) {
+			this.queryParam.put(key, value.toString());
+		}
+		return this;
+	}
 
-    public Map<String, String> getHeaderParam() {
-        return headerParam;
-    }
+	public Map<String, String> getHeaderParam() {
+		return this.headerParam;
+	}
 
-    public Request putHeaderParam(final String key, final String value) {
-        if (value != null) {
-            headerParam.put(key, value);
-        }
-        return this;
-    }
+	public Request putHeaderParam(final String key, final String value) {
+		if (value != null) {
+			this.headerParam.put(key, value);
+		}
+		return this;
+	}
 
-    public VPackSlice getBody() {
-        return body;
-    }
+	public VPackSlice getBody() {
+		return this.body;
+	}
 
-    public Request setBody(final VPackSlice body) {
-        this.body = body;
-        return this;
-    }
+	public Request setBody(final VPackSlice body) {
+		this.body = body;
+		return this;
+	}
+
+	public Request setJsonBody(String jsonBody) {
+		this.jsonBody = jsonBody;
+		return this;
+	}
+
+	public String getJsonBody() {
+		if(this.body!=null && this.jsonBody.isEmpty()) {
+			this.jsonBody = this.body.toString();
+		}
+		return this.jsonBody;
+	}
 
 }

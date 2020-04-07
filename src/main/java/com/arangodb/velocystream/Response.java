@@ -20,67 +20,85 @@
 
 package com.arangodb.velocystream;
 
-import com.arangodb.velocypack.VPackSlice;
-import com.arangodb.velocypack.annotations.Expose;
-
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+
+import com.arangodb.velocypack.VPackSlice;
+import com.arangodb.velocypack.annotations.Expose;
 
 /**
  * @author Mark Vollmary
  */
 public class Response {
 
-    private int version = 1;
-    private int type = 2;
-    private int responseCode;
-    private Map<String, String> meta;
-    @Expose(deserialize = false)
-    private VPackSlice body = null;
+	private int version = 1;
+	private int type = 2;
+	private int responseCode;
+	private Map<String, String> meta;
+	@Expose(deserialize = false)
+	private VPackSlice body = null;
+	@Expose(deserialize = false)
+	private  String jsonBody=null;
+	@Expose(deserialize = false)
 
-    public Response() {
-        super();
-        meta = new HashMap<>();
-    }
+	private Function<String, VPackSlice> bodyLoader;
 
-    public int getVersion() {
-        return version;
-    }
+	public Response() {
+		super();
+		this.meta = new HashMap<>();
+	}
 
-    public void setVersion(final int version) {
-        this.version = version;
-    }
+	public int getVersion() {
+		return this.version;
+	}
 
-    public int getType() {
-        return type;
-    }
+	public void setVersion(final int version) {
+		this.version = version;
+	}
 
-    public void setType(final int type) {
-        this.type = type;
-    }
+	public int getType() {
+		return this.type;
+	}
 
-    public int getResponseCode() {
-        return responseCode;
-    }
+	public void setType(final int type) {
+		this.type = type;
+	}
 
-    public void setResponseCode(final int responseCode) {
-        this.responseCode = responseCode;
-    }
+	public int getResponseCode() {
+		return this.responseCode;
+	}
 
-    public Map<String, String> getMeta() {
-        return meta;
-    }
+	public void setResponseCode(final int responseCode) {
+		this.responseCode = responseCode;
+	}
 
-    public void setMeta(final Map<String, String> meta) {
-        this.meta = meta;
-    }
+	public Map<String, String> getMeta() {
+		return this.meta;
+	}
 
-    public VPackSlice getBody() {
-        return body;
-    }
+	public void setMeta(final Map<String, String> meta) {
+		this.meta = meta;
+	}
 
-    public void setBody(final VPackSlice body) {
-        this.body = body;
-    }
+	public VPackSlice getBody() {
+		if(this.body==null && this.jsonBody!=null) {
+			this.body = this.bodyLoader.apply(this.jsonBody);
+		}
+		return this.body;
+	}
+
+	public void setBody(final VPackSlice body) {
+		this.body = body;
+	}
+
+	public String getJsonBody() {
+		return this.jsonBody;
+	}
+
+	public void setJsonBody(String jsonBody, Function<String, VPackSlice> bodyLoader) {
+		this.jsonBody = jsonBody;
+		this.bodyLoader = bodyLoader;
+	}
 
 }
