@@ -106,6 +106,7 @@ public class HttpConnection implements Connection {
 		private String httpCookieSpec;
 		private Protocol contentType;
 		private HostDescription host;
+		private String path = "";
 
 		private Long ttl;
 		private SSLContext sslContext;
@@ -146,6 +147,11 @@ public class HttpConnection implements Connection {
 			return this;
 		}
 
+		public Builder path(final String path) {
+			this.path = path == null ? "" : path;
+			return this;
+		}
+
 		public Builder ttl(final Long ttl) {
 			this.ttl = ttl;
 			return this;
@@ -162,8 +168,8 @@ public class HttpConnection implements Connection {
 		}
 
 		public HttpConnection build() {
-			return new HttpConnection(this.host, this.timeout, this.user, this.password, this.useSsl, this.sslContext,
-					this.util, this.contentType, this.ttl, this.httpCookieSpec);
+			return new HttpConnection(this.host, this.path, this.timeout, this.user, this.password, this.useSsl,
+					this.sslContext, this.util, this.contentType, this.ttl, this.httpCookieSpec);
 		}
 	}
 
@@ -174,13 +180,13 @@ public class HttpConnection implements Connection {
 	private final ArangoSerialization util;
 	private final Boolean useSsl;
 	private final Protocol contentType;
-	private final HostDescription host;
+	private final String baseUrl;
 
-	private HttpConnection(final HostDescription host, final Integer timeout, final String user, final String password,
-			final Boolean useSsl, final SSLContext sslContext, final ArangoSerialization util,
+	private HttpConnection(final HostDescription host, final String path, final Integer timeout, final String user,
+			final String password, final Boolean useSsl, final SSLContext sslContext, final ArangoSerialization util,
 			final Protocol contentType, final Long ttl, final String httpCookieSpec) {
 		super();
-		this.host = host;
+		this.baseUrl = buildBaseUrl(host, path);
 		this.user = user;
 		this.password = password;
 		this.useSsl = useSsl;
@@ -257,6 +263,10 @@ public class HttpConnection implements Connection {
 
 	private static String buildUrl(final String baseUrl, final Request request) {
 		final StringBuilder sb = new StringBuilder().append(baseUrl);
+		/* removing the last '/' char, if any */
+		if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '/') {
+			sb.setLength(sb.length() - 1);
+		}
 		final String database = request.getDatabase();
 		if (database != null && !database.isEmpty()) {
 			sb.append("/_db/").append(database);
@@ -321,8 +331,23 @@ public class HttpConnection implements Connection {
 		return httpRequest;
 	}
 
-	private String buildBaseUrl(final HostDescription host) {
-		return (Boolean.TRUE == this.useSsl ? "https://" : "http://") + host.getHost() + ":" + host.getPort();
+	private String buildBaseUrl(final HostDescription host, final String path) {
+		final StringBuilder sb = new StringBuilder();
+		if (Boolean.TRUE == this.useSsl) {
+			sb.append("https://");
+		} else {
+			sb.append("http://");
+		}
+		sb.append(host.getHost());
+		sb.append(':');
+		sb.append(host.getPort());
+		if (!path.isEmpty()) {
+			if (path.charAt(0) != '/') {
+				sb.append('/');
+			}
+			sb.append(path);
+		}
+		return sb.toString();
 	}
 
 	private static List<NameValuePair> toList(final Map<String, String> parameters) {
@@ -336,7 +361,7 @@ public class HttpConnection implements Connection {
 	}
 
 	public Response execute(final Request request) throws ArangoDBException, IOException {
-		final String url = buildUrl(buildBaseUrl(this.host), request);
+		final String url = buildUrl(this.baseUrl, request);
 		final HttpRequestBase httpRequest = buildHttpRequestBase(request, url);
 		httpRequest.setHeader("User-Agent", "Mozilla/5.0 (compatible; ArangoDB-JavaDriver/1.1; +http://mt.orz.at/)");
 		if (this.contentType == Protocol.HTTP_VPACK) {

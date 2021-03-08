@@ -37,9 +37,9 @@ public class HttpConnectionFactory implements ConnectionFactory {
 
     public HttpConnectionFactory(final Integer timeout, final String user, final String password, final Boolean useSsl,
                                  final SSLContext sslContext, final ArangoSerialization util, final Protocol protocol,
-                                 final Long connectionTtl, String httpCookieSpec) {
+                                 final Long connectionTtl, final String httpCookieSpec, final String path) {
         super();
-        builder = new HttpConnection.Builder().timeout(timeout).user(user).password(password).useSsl(useSsl)
+        builder = new HttpConnection.Builder().timeout(timeout).user(user).password(password).useSsl(useSsl).path(path)
                 .sslContext(sslContext).serializationUtil(util).contentType(protocol).ttl(connectionTtl).httpCookieSpec(httpCookieSpec);
 
     }

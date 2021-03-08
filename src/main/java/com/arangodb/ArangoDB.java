@@ -78,8 +78,10 @@ public interface ArangoDB extends ArangoSerializationAccessor {
 	class Builder extends InternalArangoDBBuilder {
 
 		private static final String PROPERTY_KEY_PROTOCOL = "arangodb.protocol";
+		private static final String PROPERTY_KEY_PATH = "arangodb.path";
 
 		protected Protocol protocol;
+		protected String path;
 
 		public Builder() {
 			super();
@@ -89,11 +91,16 @@ public interface ArangoDB extends ArangoSerializationAccessor {
 		protected void loadProperties(final Properties properties) {
 			super.loadProperties(properties);
 			protocol = loadProtocol(properties, protocol);
+			path = loadPath(properties, path);
 		}
 
 		private static Protocol loadProtocol(final Properties properties, final Protocol currentValue) {
 			return Protocol.valueOf(getProperty(properties, PROPERTY_KEY_PROTOCOL, currentValue,
 					ArangoDefaults.DEFAULT_NETWORK_PROTOCOL).toUpperCase());
+		}
+
+		private static String loadPath(final Properties properties, final String currentValue) {
+			return getProperty(properties, PROPERTY_KEY_PATH, currentValue, "");
 		}
 
 		public Builder useProtocol(final Protocol protocol) {
@@ -119,6 +126,21 @@ public interface ArangoDB extends ArangoSerializationAccessor {
 			return this;
 		}
 		
+		/**
+		 * Adds a path prefix when connecting to the server. Useful when ArangoDB server
+		 * is behind a proxy at some non-root path (e.g.,
+		 * https://my.company.com/arangoDB/).
+		 *
+		 * Cannot be used with {@link Protocol#VST}.
+		 *
+		 * @param path
+		 * @return
+		 */
+		public Builder path(final String path) {
+			this.path = path;
+			return this;
+		}
+
 		/**
 		 * Set proxy that will be used by any host
 		 *
@@ -617,10 +639,13 @@ public interface ArangoDB extends ArangoSerializationAccessor {
 			if(protocol==Protocol.VST && proxy!=null) {
 				throw new ArangoDBException("Proxy is not supported by VST communications");
 			}
+			if (this.protocol == Protocol.VST && this.path != null && !this.path.equals("") && !this.path.equals("/")) {
+				throw new ArangoDBException("Non-empty path is not supported by VST communications");
+			}
 			final ConnectionFactory connectionFactory = (protocol == null || Protocol.VST == protocol)
 					? new VstConnectionFactorySync(host, timeout, connectionTtl, useSsl, sslContext)
 					: new HttpConnectionFactory(timeout, user, password, useSsl, sslContext, custom, protocol,
-							connectionTtl, httpCookieSpec);
+							connectionTtl, httpCookieSpec, path);
 
 			final Collection<Host> hostList = createHostList(max, connectionFactory);
 			final HostResolver hostResolver = createHostResolver(hostList, max, connectionFactory);
